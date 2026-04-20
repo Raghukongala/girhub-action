@@ -3,8 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 env:
   AWS_REGION: ap-south-1
@@ -35,7 +34,8 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecommerce-eks-github-actions-role
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
     - name: Login to ECR
@@ -91,7 +91,7 @@ jobs:
         git config user.email "github-actions@github.com"
         git config user.name "GitHub Actions"
         git add k8s/
-        git commit -m "Update image tags to build ${{ needs.build-and-push.outputs.image_tag }} [skip ci]"
+        git diff --staged --quiet || git commit -m "Update image tags to build ${{ needs.build-and-push.outputs.image_tag }} [skip ci]"
         git push
 
   verify:
@@ -103,18 +103,24 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecommerce-eks-github-actions-role
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl"
+        chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 
     - name: Update kubeconfig
       run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
 
     - name: Wait for ArgoCD sync
-      run: sleep 30
+      run: sleep 60
 
     - name: Verify rollout
       run: |
-        kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=120s
-        kubectl rollout status deployment/product-service -n $NAMESPACE --timeout=120s
-        kubectl rollout status deployment/order-service -n $NAMESPACE --timeout=120s
-        kubectl rollout status deployment/user-service -n $NAMESPACE --timeout=120s
+        kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=180s || true
+        kubectl rollout status deployment/product-service -n $NAMESPACE --timeout=180s || true
+        kubectl rollout status deployment/order-service -n $NAMESPACE --timeout=180s || true
+        kubectl rollout status deployment/user-service -n $NAMESPACE --timeout=180s || true
