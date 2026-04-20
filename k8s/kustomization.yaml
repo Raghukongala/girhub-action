@@ -5,6 +5,8 @@ namespace: ecommerce
 
 resources:
   - namespace.yaml
+  - service-account.yaml
+  - external-secrets.yaml
   - secrets.yaml
   - postgres.yaml
   - mongodb.yaml
