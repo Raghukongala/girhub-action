@@ -8,6 +8,7 @@ resources:
   - service-account.yaml
   - external-secrets.yaml
   - secrets.yaml
+  - hpa.yaml
   - postgres.yaml
   - mongodb.yaml
   - user-service.yaml
