@@ -33,9 +33,9 @@ function Home() {
         background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
         borderRadius: 3, p: 4, mb: 4, color: 'white', textAlign: 'center'
       }}>
-        <Typography variant="h3" sx={{ fontWeight: 800 }}>Welcome to RK Shop</Typography>
+        <Typography variant="h3" sx={{ fontWeight: 800 }}>Raghu Kongala</Typography>
         <Typography variant="h6" sx={{ opacity: 0.9, mt: 1 }}>
-          Deployed on AWS EKS • GitHub Actions • ArgoCD
+          E-Commerce Platform on AWS EKS • GitHub Actions • ArgoCD
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2, flexWrap: 'wrap' }}>
           {['AWS EKS', 'GitHub Actions', 'ArgoCD', 'Terraform', 'Docker', 'K8s'].map(t => (
