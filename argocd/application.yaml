@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/Raghukongala/ecommerce-app.git
+    repoURL: https://github.com/Raghukongala/girhub-action.git
     targetRevision: main
     path: k8s
   destination:
