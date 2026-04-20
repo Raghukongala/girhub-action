@@ -33,7 +33,7 @@ function Home() {
         background: 'linear-gradient(135deg, #ff6b35, #f7931e)',
         borderRadius: 3, p: 4, mb: 4, color: 'white', textAlign: 'center'
       }}>
-        <Typography variant="h3" sx={{ fontWeight: 800 }}>Raghu Kongala</Typography>
+        <Typography variant="h3" sx={{ fontWeight: 800 }}>Deepthi Kongala</Typography>
         <Typography variant="h6" sx={{ opacity: 0.9, mt: 1 }}>
           E-Commerce Platform on AWS EKS • GitHub Actions • ArgoCD
         </Typography>
