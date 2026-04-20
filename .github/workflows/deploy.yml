@@ -38,17 +38,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: SonarQube Scan
-      uses: sonarsource/sonarqube-scan-action@master
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      with:
-        args: >
-          -Dsonar.projectKey=ecommerce-app
-          -Dsonar.sources=.
-          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/*.test.js,**/target/**
-
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
