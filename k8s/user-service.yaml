@@ -24,9 +24,15 @@ spec:
         - containerPort: 3003
         env:
         - name: POSTGRES_URI
-          value: "postgresql://ecomuser:ecompassword@postgres-service:5432/ecomdb"
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-secrets
+              key: POSTGRES_URI
         - name: JWT_SECRET
-          value: "ecommerce-secret-key"
+          valueFrom:
+            secretKeyRef:
+              name: ecommerce-secrets
+              key: JWT_SECRET
         livenessProbe:
           httpGet:
             path: /health

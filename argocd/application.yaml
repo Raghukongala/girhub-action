@@ -9,6 +9,7 @@ spec:
     repoURL: https://github.com/Raghukongala/girhub-action.git
     targetRevision: main
     path: k8s
+    kustomize: {}
   destination:
     server: https://kubernetes.default.svc
     namespace: ecommerce

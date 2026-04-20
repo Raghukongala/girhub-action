@@ -38,6 +38,17 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      with:
+        args: >
+          -Dsonar.projectKey=ecommerce-app
+          -Dsonar.sources=.
+          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/*.test.js,**/target/**
+
     - name: Login to ECR
       uses: aws-actions/amazon-ecr-login@v2
 
@@ -66,6 +77,33 @@ jobs:
         docker build -t $ECR_BASE/payment-service:${{ steps.tag.outputs.tag }} ./payment-service
         docker push $ECR_BASE/payment-service:${{ steps.tag.outputs.tag }}
 
+    - name: Trivy Scan - frontend
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.ECR_BASE }}/frontend:${{ steps.tag.outputs.tag }}
+        format: table
+        exit-code: 0
+        severity: HIGH,CRITICAL
+        scanners: vuln
+
+    - name: Trivy Scan - product-service
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.ECR_BASE }}/product-service:${{ steps.tag.outputs.tag }}
+        format: table
+        exit-code: 0
+        severity: HIGH,CRITICAL
+        scanners: vuln
+
+    - name: Trivy Scan - user-service
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.ECR_BASE }}/user-service:${{ steps.tag.outputs.tag }}
+        format: table
+        exit-code: 0
+        severity: HIGH,CRITICAL
+        scanners: vuln
+
   update-manifests:
     name: Update K8s Manifests
     runs-on: ubuntu-latest
@@ -80,11 +118,12 @@ jobs:
     - name: Update image tags
       run: |
         TAG=${{ needs.build-and-push.outputs.image_tag }}
-        sed -i "s|$ECR_BASE/frontend:.*|$ECR_BASE/frontend:$TAG|g" k8s/frontend.yaml
-        sed -i "s|$ECR_BASE/product-service:.*|$ECR_BASE/product-service:$TAG|g" k8s/product-service.yaml
-        sed -i "s|$ECR_BASE/order-service:.*|$ECR_BASE/order-service:$TAG|g" k8s/order-service.yaml
-        sed -i "s|$ECR_BASE/user-service:.*|$ECR_BASE/user-service:$TAG|g" k8s/user-service.yaml
-        sed -i "s|$ECR_BASE/payment-service:.*|$ECR_BASE/payment-service:$TAG|g" k8s/payment-service.yaml
+        ECR_BASE="957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce"
+        sed -i "s|${ECR_BASE}/frontend:.*|${ECR_BASE}/frontend:${TAG}|g" k8s/frontend.yaml
+        sed -i "s|${ECR_BASE}/product-service:.*|${ECR_BASE}/product-service:${TAG}|g" k8s/product-service.yaml
+        sed -i "s|${ECR_BASE}/order-service:.*|${ECR_BASE}/order-service:${TAG}|g" k8s/order-service.yaml
+        sed -i "s|${ECR_BASE}/user-service:.*|${ECR_BASE}/user-service:${TAG}|g" k8s/user-service.yaml
+        sed -i "s|${ECR_BASE}/payment-service:.*|${ECR_BASE}/payment-service:${TAG}|g" k8s/payment-service.yaml
 
     - name: Commit and push
       run: |
