@@ -19,7 +19,7 @@ spec:
         command: ['sh', '-c', 'until nc -z postgres-service 5432; do sleep 2; done']
       containers:
       - name: user-service
-        image: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce/user-service:13
+        image: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce/user-service:14
         ports:
         - containerPort: 3003
         env:
