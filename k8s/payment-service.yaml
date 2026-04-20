@@ -19,7 +19,7 @@ spec:
         command: ['sh', '-c', 'until nc -z mongodb-service 27017; do sleep 2; done']
       containers:
       - name: payment-service
-        image: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce/payment-service:11
+        image: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce/payment-service:12
         ports:
         - containerPort: 3004
         env:
