@@ -1,0 +1,120 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: ap-south-1
+  AWS_ACCOUNT_ID: 957948932374
+  ECR_BASE: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce
+  EKS_CLUSTER: ecommerce-eks
+  NAMESPACE: ecommerce
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set image tag
+      id: tag
+      run: echo "tag=${{ github.run_number }}" >> $GITHUB_OUTPUT
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecommerce-eks-github-actions-role
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build & Push frontend
+      run: |
+        docker build -t $ECR_BASE/frontend:${{ steps.tag.outputs.tag }} ./frontend
+        docker push $ECR_BASE/frontend:${{ steps.tag.outputs.tag }}
+
+    - name: Build & Push product-service
+      run: |
+        docker build -t $ECR_BASE/product-service:${{ steps.tag.outputs.tag }} ./product-service
+        docker push $ECR_BASE/product-service:${{ steps.tag.outputs.tag }}
+
+    - name: Build & Push order-service
+      run: |
+        docker build -t $ECR_BASE/order-service:${{ steps.tag.outputs.tag }} ./order-service
+        docker push $ECR_BASE/order-service:${{ steps.tag.outputs.tag }}
+
+    - name: Build & Push user-service
+      run: |
+        docker build -t $ECR_BASE/user-service:${{ steps.tag.outputs.tag }} ./user-service
+        docker push $ECR_BASE/user-service:${{ steps.tag.outputs.tag }}
+
+    - name: Build & Push payment-service
+      run: |
+        docker build -t $ECR_BASE/payment-service:${{ steps.tag.outputs.tag }} ./payment-service
+        docker push $ECR_BASE/payment-service:${{ steps.tag.outputs.tag }}
+
+  update-manifests:
+    name: Update K8s Manifests
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_PAT }}
+
+    - name: Update image tags
+      run: |
+        TAG=${{ needs.build-and-push.outputs.image_tag }}
+        sed -i "s|$ECR_BASE/frontend:.*|$ECR_BASE/frontend:$TAG|g" k8s/frontend.yaml
+        sed -i "s|$ECR_BASE/product-service:.*|$ECR_BASE/product-service:$TAG|g" k8s/product-service.yaml
+        sed -i "s|$ECR_BASE/order-service:.*|$ECR_BASE/order-service:$TAG|g" k8s/order-service.yaml
+        sed -i "s|$ECR_BASE/user-service:.*|$ECR_BASE/user-service:$TAG|g" k8s/user-service.yaml
+        sed -i "s|$ECR_BASE/payment-service:.*|$ECR_BASE/payment-service:$TAG|g" k8s/payment-service.yaml
+
+    - name: Commit and push
+      run: |
+        git config user.email "github-actions@github.com"
+        git config user.name "GitHub Actions"
+        git add k8s/
+        git commit -m "Update image tags to build ${{ needs.build-and-push.outputs.image_tag }} [skip ci]"
+        git push
+
+  verify:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: update-manifests
+
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/ecommerce-eks-github-actions-role
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER
+
+    - name: Wait for ArgoCD sync
+      run: sleep 30
+
+    - name: Verify rollout
+      run: |
+        kubectl rollout status deployment/frontend -n $NAMESPACE --timeout=120s
+        kubectl rollout status deployment/product-service -n $NAMESPACE --timeout=120s
+        kubectl rollout status deployment/order-service -n $NAMESPACE --timeout=120s
+        kubectl rollout status deployment/user-service -n $NAMESPACE --timeout=120s

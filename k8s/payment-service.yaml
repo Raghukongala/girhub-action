@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: payment-service
+  template:
+    metadata:
+      labels:
+        app: payment-service
+    spec:
+      initContainers:
+      - name: wait-for-mongodb
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z mongodb-service 27017; do sleep 2; done']
+      containers:
+      - name: payment-service
+        image: 957948932374.dkr.ecr.ap-south-1.amazonaws.com/ecommerce/payment-service:1
+        ports:
+        - containerPort: 3004
+        env:
+        - name: MONGODB_URI
+          value: "mongodb://mongodb-service:27017/ecommerce"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3004
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: ecommerce
+spec:
+  selector:
+    app: payment-service
+  ports:
+  - port: 3004
+    targetPort: 3004
