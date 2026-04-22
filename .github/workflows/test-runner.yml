@@ -1,0 +1,25 @@
+name: Test Self Hosted Runner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print system info
+        run: |
+          echo "Runner is working!"
+          uname -a
+          whoami
+
+      - name: Create test file
+        run: |
+          echo "Hello from self-hosted runner" > test.txt
+          cat test.txt
